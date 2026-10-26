@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instagram Benchmark Builder</title>
+<style>
+  :root {
+    --bg: #F4F6F5;
+    --surface: #FFFFFF;
+    --surface-sunken: #ECEFEE;
+    --border: #D8DEDC;
+    --fg: #10201E;
+    --fg-muted: #51635F;
+    --accent: #2F6F5E;
+    --accent-ink: #184539;
+    --accent-soft: #E3EFEA;
+    --warn: #96661C;
+    --warn-soft: #F7EDDC;
+    --danger: #A23B2E;
+    --danger-soft: #F8E7E3;
+    --font-display: 'Archivo', 'Arial Narrow', sans-serif;
+    --font-body: 'Public Sans', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1715; --surface: #152220; --surface-sunken: #0E1715; --border: #283733;
+      --fg: #E9F2EF; --fg-muted: #9FB3AE; --accent: #5FB79B; --accent-ink: #8FD1BA;
+      --accent-soft: #1C342C; --warn: #E0B050; --warn-soft: #3A2F18;
+      --danger: #E08A7A; --danger-soft: #3A211D;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .page { max-width: 720px; margin: 0 auto; padding-block: 40px 64px; display: flex; flex-direction: column; gap: 28px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 5vw, 34px); letter-spacing: -0.01em; margin: 6px 0 8px; }
+  .lede { color: var(--fg-muted); font-size: 15.5px; max-width: 58ch; }
+  .lede strong { color: var(--fg); font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  h2 { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-muted); margin: 0 0 14px; }
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step { display: flex; gap: 14px; align-items: flex-start; }
+  .step-num { flex: none; width: 28px; height: 28px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-family: var(--font-mono); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .step-body { min-width: 0; flex: 1; }
+  .step-title { font-weight: 600; margin: 0 0 4px; }
+  .step-detail { color: var(--fg-muted); font-size: 14px; margin: 0; }
+  .step-detail + .step-detail { margin-top: 6px; }
+  .field-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .field-list li { font-size: 13.5px; color: var(--fg-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+  .field-list .label { color: var(--fg); font-weight: 500; }
+  code, .pill { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-sunken); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--fg); }
+  a.ext-link { color: var(--accent-ink); font-weight: 600; }
+  .step-divider { height: 1px; background: var(--border); margin: 2px 0 2px 42px; }
+  .tool-card { padding: 0; overflow: hidden; }
+  .tool-head { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .tool-body { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+  .dropzone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 28px 20px; text-align: center; cursor: pointer; background: var(--surface-sunken); transition: border-color 0.15s ease, background 0.15s ease; }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .dropzone-title { font-weight: 600; margin: 0 0 4px; }
+  .dropzone-sub { color: var(--fg-muted); font-size: 13.5px; margin: 0; }
+  #fileInput { display: none; }
+  .file-chosen { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--fg-muted); }
+  .file-chosen .name { color: var(--fg); font-weight: 600; font-family: var(--font-mono); font-size: 12.5px; }
+  .field-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .field-row label { font-size: 13.5px; color: var(--fg-muted); }
+  .field-row input[type="number"] { width: 72px; font-family: var(--font-mono); font-size: 14px; padding: 6px 8px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); }
+  table.preview { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.preview th, table.preview td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  table.preview th { color: var(--fg-muted); font-weight: 600; font-size: 11.5px; letter-spacing: 0.03em; text-transform: uppercase; }
+  table.preview td.handle { font-family: var(--font-mono); font-weight: 600; }
+  .preview-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .notice { display: flex; gap: 8px; align-items: flex-start; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
+  .notice.warn { background: var(--warn-soft); color: var(--warn); }
+  .notice.error { background: var(--danger-soft); color: var(--danger); }
+  .notice-icon { flex: none; font-family: var(--font-mono); font-weight: 700; }
+  button.primary { font-family: var(--font-body); font-weight: 700; font-size: 14.5px; color: #fff; background: var(--accent-ink); border: none; border-radius: 9px; padding: 12px 18px; cursor: pointer; }
+  button.primary:hover:not(:disabled) { opacity: 0.9; }
+  button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status { font-size: 13.5px; color: var(--fg-muted); display: flex; align-items: center; gap: 8px; min-height: 20px; }
+  .status.ok { color: var(--accent-ink); font-weight: 600; }
+  .status.err { color: var(--danger); font-weight: 600; }
+  .what-you-get { font-size: 13px; color: var(--fg-muted); }
+  .what-you-get strong { color: var(--fg); }
+  footer { font-size: 12.5px; color: var(--fg-muted); border-top: 1px solid var(--border); padding-top: 16px; }
+  @media (max-width: 480px) { .page { padding-block: 28px 48px; gap: 22px; } .card { padding: 16px; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">QiWorks — social tooling</div>
+    <h1>Instagram Benchmark Builder</h1>
+    <p class="lede">Turn an Instagram scrape into a ready-to-read Excel benchmark — <strong>no coding, no installs.</strong> Follow the three steps below once per pull, then drop the result in the tool at the bottom.</p>
+  </header>
+
+  <div class="card">
+    <h2>How it works</h2>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <p class="step-title">Run the scraper on Apify</p>
+          <p class="step-detail">Open <a class="ext-link" href="https://apify.com/apify/instagram-post-scraper" target="_blank" rel="noopener">apify.com/apify/instagram-post-scraper</a> and sign in. Fill in the Input form:</p>
+          <ul class="field-list">
+            <li><span class="label">Instagram username, profile URL, or post URL</span> — one handle per line, e.g. <code>necindiaofficial</code>, no @</li>
+            <li><span class="label">Maximum posts per profile</span> — <code>200</code> is plenty</li>
+            <li><span class="label">Extract posts that are newer than</span> — <code>90 days</code> (or whatever window you're comparing)</li>
+            <li><span class="label">Skip pinned posts</span> — leave checked</li>
+          </ul>
+          <p class="step-detail">Click <strong>Start</strong> and wait — a handful of accounts usually takes under a minute.</p>
+        </div>
+      </div>
+
+      <div class="step-divider"></div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <p class="step-title">Export the results</p>
+          <p class="step-detail">When the run finishes, click <strong>Export</strong> on the results screen. Choose format <code>JSON</code>, then <strong>Download</strong>. You'll get one <code>.json</code> file with every post from every handle you entered.</p>
+        </div>
+      </div>
+
+      <div class="step-divider"></div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <p class="step-title">Build the Excel file, right here</p>
+          <p class="step-detail">Drop that <code>.json</code> file into the tool below. It reads it in your browser and downloads the finished workbook — nothing is uploaded anywhere, everything happens on your own machine.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card tool-card">
+    <div class="tool-head">
+      <h2 style="margin:0">Build the workbook</h2>
+    </div>
+    <div class="tool-body">
+
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose the Apify export JSON file">
+        <p class="dropzone-title">Drop the exported .json file here</p>
+        <p class="dropzone-sub">or click to choose it — from step 2 above</p>
+      </div>
+      <input type="file" id="fileInput" accept=".json,application/json">
+
+      <div id="fileChosen" class="file-chosen" hidden>
+        <span>File:</span><span class="name" id="fileName"></span>
+      </div>
+
+      <div id="notices"></div>
+
+      <div id="previewSection" hidden>
+        <div class="field-row" style="margin-bottom:14px;">
+          <label for="daysInput">Lookback window used in step 1 (days):</label>
+          <input type="number" id="daysInput" value="90" min="1" max="3650">
+        </div>
+        <div class="preview-wrap">
+          <table class="preview" id="previewTable">
+            <thead>
+              <tr><th>Handle</th><th>Posts found</th><th>Date range</th><th>Followers</th></tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <button class="primary" id="buildBtn" disabled>Build &amp; download Excel workbook</button>
+        <div class="status" id="statusLine"></div>
+      </div>
+
+      <p class="what-you-get">The workbook has two tabs: <strong>Posts</strong> (every post — date, format, likes, comments, views, caption, link) and <strong>Benchmark</strong> (per-handle rollup — posts/week, avg &amp; median engagement, best post, engagement per 1k followers, % with comments, video/reel count).</p>
+    </div>
+  </div>
+
+  <footer>
+    Cost note: Apify's free plan includes a monthly usage credit that comfortably covers an occasional pull like this. The scraper needs no login of your own on Instagram — it reads public posts only. This page runs entirely in your browser; no server, no account needed to use it.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('fileInput');
+  var fileChosen = document.getElementById('fileChosen');
+  var fileNameEl = document.getElementById('fileName');
+  var notices = document.getElementById('notices');
+  var previewSection = document.getElementById('previewSection');
+  var previewBody = document.getElementById('previewBody');
+  var daysInput = document.getElementById('daysInput');
+  var buildBtn = document.getElementById('buildBtn');
+  var statusLine = document.getElementById('statusLine');
+
+  var parsedPosts = null;
+
+  function clearNotices() { notices.innerHTML = ''; notices.hidden = true; }
+  function showNotice(kind, text) {
+    var div = document.createElement('div');
+    div.className = 'notice ' + kind;
+    var icon = document.createElement('span');
+    icon.className = 'notice-icon';
+    icon.textContent = kind === 'error' ? '!' : 'i';
+    var span = document.createElement('span');
+    span.textContent = text;
+    div.appendChild(icon);
+    div.appendChild(span);
+    notices.appendChild(div);
+    notices.hidden = false;
+  }
+
+  function setStatus(text, kind) {
+    statusLine.textContent = text || '';
+    statusLine.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function fmtOf(item) {
+    var productType = (item.productType || '').toLowerCase();
+    var type = (item.type || '').toLowerCase();
+    if (productType === 'clips') return 'reel';
+    if (type === 'sidecar') return 'carousel';
+    if (type === 'video') return 'video';
+    return 'image';
+  }
+  function viewsOf(item) {
+    if (typeof item.videoPlayCount === 'number') return item.videoPlayCount;
+    if (typeof item.videoViewCount === 'number') return item.videoViewCount;
+    return null;
+  }
+  function normalize(item) {
+    var handle = item.ownerUsername || item.username || '';
+    var tsRaw = item.timestamp || null;
+    var date = '';
+    if (tsRaw) {
+      try { date = new Date(tsRaw).toISOString().slice(0, 10); } catch (e) {}
+    }
+    var caption = item.caption || '';
+    var hashtags = item.hashtags || [];
+    var likes = (typeof item.likesCount === 'number') ? item.likesCount : null;
+    var comments = (typeof item.commentsCount === 'number') ? item.commentsCount : null;
+    var views = viewsOf(item);
+    var engagement = (likes || 0) + (comments || 0);
+    return {
+      handle: handle, date: date, format: fmtOf(item),
+      likes: likes, comments: comments, views: views, engagement: engagement,
+      hashtag_count: hashtags.length,
+      caption_chars: caption.length,
+      url: item.url || '',
+      caption: caption,
+      post_id: item.id || item.shortCode || '',
+      followers: (typeof item.ownerFollowersCount === 'number') ? item.ownerFollowersCount : null,
+    };
+  }
+
+  function median(nums) {
+    var s = nums.slice().sort(function (a, b) { return a - b; });
+    var n = s.length;
+    if (n === 0) return null;
+    var mid = Math.floor(n / 2);
+    return n % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+  function round(n, d) {
+    var f = Math.pow(10, d);
+    return Math.round(n * f) / f;
+  }
+
+  function groupByHandle(posts) {
+    var byHandle = {};
+    posts.forEach(function (p) {
+      if (!byHandle[p.handle]) byHandle[p.handle] = [];
+      byHandle[p.handle].push(p);
+    });
+    return byHandle;
+  }
+
+  function buildBenchmarkRows(posts, daysWindow) {
+    var byHandle = groupByHandle(posts);
+    var handles = Object.keys(byHandle).sort();
+    return handles.map(function (handle) {
+      var ps = byHandle[handle];
+      var eng = ps.map(function (p) { return p.engagement; });
+      var followersRow = ps.filter(function (p) { return p.followers != null; })[0];
+      var followers = followersRow ? followersRow.followers : null;
+      var withComments = ps.filter(function (p) { return (p.comments || 0) > 0; }).length;
+      var videoLike = ps.filter(function (p) { return p.format === 'video' || p.format === 'reel'; });
+      var videoViews = videoLike.map(function (p) { return p.views; }).filter(function (v) { return v != null; });
+      var avgEng = eng.reduce(function (a, b) { return a + b; }, 0) / eng.length;
+      return {
+        handle: handle,
+        followers: followers,
+        posts: ps.length,
+        posts_per_week: round(ps.length / (daysWindow / 7), 1),
+        avg_engagement: round(avgEng, 1),
+        median_engagement: median(eng),
+        best_post: Math.max.apply(null, eng),
+        eng_per_1k: followers ? round(avgEng / (followers / 1000), 2) : null,
+        pct_with_comments: round((withComments / ps.length) * 100, 0),
+        video_reel_count: videoLike.length,
+        avg_views_video: videoViews.length ? round(videoViews.reduce(function (a, b) { return a + b; }, 0) / videoViews.length, 0) : null,
+      };
+    });
+  }
+
+  function renderPreview(posts) {
+    var byHandle = groupByHandle(posts);
+    var handles = Object.keys(byHandle).sort();
+    previewBody.innerHTML = '';
+    handles.forEach(function (handle) {
+      var ps = byHandle[handle];
+      var dates = ps.map(function (p) { return p.date; }).filter(Boolean).sort();
+      var range = dates.length ? (dates[0] + ' to ' + dates[dates.length - 1]) : '—';
+      var followersRow = ps.filter(function (p) { return p.followers != null; })[0];
+      var tr = document.createElement('tr');
+      var followersCell = followersRow ? followersRow.followers.toLocaleString() : 'not found';
+      tr.innerHTML =
+        '<td class="handle">' + escapeHtml(handle) + '</td>' +
+        '<td>' + ps.length + '</td>' +
+        '<td>' + escapeHtml(range) + '</td>' +
+        '<td>' + escapeHtml(followersCell) + '</td>';
+      previewBody.appendChild(tr);
+      if (!followersRow) {
+        showNotice('warn', 'No follower count found for ' + handle + ' — check the handle is correct and public. The workbook will still build, just without engagement-per-1k-followers for that handle.');
+      }
+    });
+    previewSection.hidden = false;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function handleFile(file) {
+    clearNotices();
+    previewSection.hidden = true;
+    buildBtn.disabled = true;
+    parsedPosts = null;
+    setStatus('');
+
+    if (!file) return;
+    fileNameEl.textContent = file.name;
+    fileChosen.hidden = false;
+
+    var reader = new FileReader();
+    reader.onerror = function () {
+      showNotice('error', 'Could not read that file. Try choosing it again.');
+    };
+    reader.onload = function () {
+      var parsed;
+      try {
+        parsed = JSON.parse(reader.result);
+      } catch (e) {
+        showNotice('error', 'That file isn\'t valid JSON — make sure you exported in JSON format in step 2, and pick that file (not a .csv or .xlsx export).');
+        return;
+      }
+      var rawItems = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.items) ? parsed.items : null);
+      if (!rawItems) {
+        showNotice('error', 'This JSON doesn\'t look like an Apify dataset export — expected a list of posts.');
+        return;
+      }
+      if (rawItems.length === 0) {
+        showNotice('error', 'This export has no posts in it. Check the handles and date window in step 1 and re-run.');
+        return;
+      }
+      var posts = rawItems.map(normalize).filter(function (p) { return p.handle && p.post_id; });
+      if (posts.length === 0) {
+        showNotice('error', 'None of the entries in this file had a recognizable handle or post ID — this may not be an Instagram posts export.');
+        return;
+      }
+      posts.sort(function (a, b) {
+        return (a.handle + a.date).localeCompare(b.handle + b.date);
+      });
+      parsedPosts = posts;
+      renderPreview(posts);
+      buildBtn.disabled = false;
+      setStatus(posts.length + ' posts parsed across ' + Object.keys(groupByHandle(posts)).length + ' handle(s). Ready to build.');
+    };
+    reader.readAsText(file);
+  }
+
+  dropzone.addEventListener('click', function () { fileInput.click(); });
+  dropzone.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('drag'); });
+  dropzone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  fileInput.addEventListener('change', function (e) {
+    handleFile(e.target.files && e.target.files[0]);
+  });
+
+  var POST_HEADERS = ['handle', 'date', 'format', 'likes', 'comments', 'views', 'engagement', 'hashtag_count', 'caption_chars', 'url', 'caption'];
+  var POST_WIDTHS  = [20, 11, 10, 8, 9, 9, 11, 12, 12, 46, 70];
+  var BENCH_HEADERS = ['Handle', 'Followers', 'Posts', 'Posts/wk', 'Avg engagement', 'Median engagement', 'Best post', 'Eng/1k followers', '% with comments', 'Videos/Reels', 'Avg views (video)'];
+  var BENCH_WIDTHS  = [22, 12, 8, 10, 14, 16, 10, 16, 15, 13, 17];
+
+  function buildWorkbook(posts, daysWindow) {
+    var postRows = [POST_HEADERS].concat(posts.map(function (p) {
+      return [p.handle, p.date, p.format, p.likes, p.comments, p.views, p.engagement, p.hashtag_count, p.caption_chars, p.url, p.caption];
+    }));
+    var bench = buildBenchmarkRows(posts, daysWindow);
+    var benchRows = [BENCH_HEADERS].concat(bench.map(function (r) {
+      return [r.handle, r.followers, r.posts, r.posts_per_week, r.avg_engagement, r.median_engagement, r.best_post, (r.eng_per_1k == null ? '' : r.eng_per_1k), r.pct_with_comments, r.video_reel_count, (r.avg_views_video == null ? '' : r.avg_views_video)];
+    }));
+
+    var wsPosts = XLSX.utils.aoa_to_sheet(postRows);
+    wsPosts['!cols'] = POST_WIDTHS.map(function (w) { return { wch: w }; });
+    wsPosts['!freeze'] = { xSplit: 0, ySplit: 1 };
+    wsPosts['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: postRows.length - 1, c: POST_HEADERS.length - 1 } }) };
+
+    var wsBench = XLSX.utils.aoa_to_sheet(benchRows);
+    wsBench['!cols'] = BENCH_WIDTHS.map(function (w) { return { wch: w }; });
+    wsBench['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsPosts, 'Posts');
+    XLSX.utils.book_append_sheet(wb, wsBench, 'Benchmark');
+    return wb;
+  }
+
+  function triggerDownload(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  buildBtn.addEventListener('click', function () {
+    if (!parsedPosts) return;
+    var days = parseInt(daysInput.value, 10);
+    if (!days || days < 1) days = 90;
+
+    buildBtn.disabled = true;
+    setStatus('Building workbook…');
+
+    try {
+      var wb = buildWorkbook(parsedPosts, days);
+      var wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      var blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var filename = 'ig_benchmark_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      triggerDownload(blob, filename);
+      setStatus('Downloaded ' + filename + ' — check your browser\'s Downloads folder.', 'ok');
+    } catch (e) {
+      setStatus('Something went wrong building the workbook: ' + e.message, 'err');
+    } finally {
+      buildBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
